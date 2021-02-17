@@ -1,4 +1,6 @@
 module.exports = {
+
+  productionSourceMap: false,
   configureWebpack: {
     resolve: {
       alias: {
@@ -8,7 +10,11 @@ module.exports = {
         '>network': '@/network',
         '>views': '@/views',
       }
+    },
+    optimization: {
+      minimize: false,
     }
+
   }
 }
 
