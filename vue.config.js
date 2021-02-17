@@ -1,6 +1,6 @@
 module.exports = {
 
-  productionSourceMap: false,
+  // productionSourceMap: false,
   configureWebpack: {
     resolve: {
       alias: {
