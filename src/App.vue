@@ -5,12 +5,12 @@
         <component :is="Component" />
       </keep-alive>
     </router-view>
-    <main-tab-bar></main-tab-bar>
+    <main-tab-bar class="main-tab-bar"></main-tab-bar>
   </div>
 
 </template>
 <script>
-import MainTabBar from '>components/content/MainTabBar'
+import MainTabBar from '>components/content/main-tabbar/MainTabBar'
 
 
 export default {
