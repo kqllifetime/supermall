@@ -1,7 +1,6 @@
 <template>
   <div class="wrapper" ref="wrapper">
     <div class="content">
-      <button @click="btnClick">button</button>
       <ul>
         <li>列表1</li>
         <li>列表2</li>
@@ -105,49 +104,53 @@
         <li>列表100</li>
       </ul>
     </div>
-
   </div>
 </template>
 
 <script>
 import BScroll from '@better-scroll/core'
-import Pullup from '@better-scroll/pull-up'
+// import Pullup from '@better-scroll/pull-up'
 
-BScroll.use(Pullup)
+// BScroll.use(Pullup)
 
 export default {
-  el: 'Category',
+  el: 'BScroll',
   data() {
     return {
       bscroll: null,
     }
   },
+  created() {
+    console.log('Category created');
+  },
   mounted() {
-    this.bscroll = new BScroll(this.$refs.wrapper, {
-      probeType: 3,
-      pullUpLoad: true,
-      // click: true
-    })
-    this.bscroll.on('scroll', (position) => {
-      // console.log(position);
-    })
-    this.bscroll.on('pullingUp', () => {
-    console.log('上拉加载');
-    this.bscroll.finishPullUp()
-    })
+    this.initBScroll();
   },
   methods: {
-    btnClick(){
-      console.log('btnClick')
+    initBScroll() {
+      this.bscroll = new BScroll(this.$refs.wrapper, {
+        // probeType: 3,
+        // pullUpLoad: true,
+        // click: true
+      })
+      // this.bscroll.on('scroll', (position) => {
+      //   // console.log(position);
+      // })
+      // this.bscroll.on('pullingUp', () => {
+      //   console.log('上拉加载');
+      //   setTimeout(this.bscroll.finishPullUp(),2000);
+      // })
     }
   },
+
 }
 </script>
 
 <style lang="less" scoped>
-.wrapper {
-  height: 200px;
-  background-color: red;
-  overflow: hidden;
-}
+  .wrapper {
+    height: 300px;
+    background-color: red;
+    overflow: hidden;
+  }
+
 </style>

@@ -4,6 +4,7 @@ const Home = () => import('../views/home/Home.vue')
 const Category = () => import('../views/category/Category.vue')
 const ShopCart = () => import('../views/cart/ShopCart.vue')
 const Profile = () => import('../views/profile/Profile.vue')
+const Detail = () => import ('../views/detail/Detail.vue')
 
 const routes = [
   {
@@ -11,20 +12,42 @@ const routes = [
     redirect: '/home'
   },
   {
+    name: 'home',
     path: '/home',
-    component: Home
+    component: Home,
+    meta: {
+      keepAlive: true
+    }
   },
   {
+    name: 'category',
     path: '/category',
-    component: Category
+    component: Category,
+    meta: {
+      keepAlive: true
+    }
   },
   {
     path: '/shopcart',
-    component: ShopCart
+    component: ShopCart,
+    meta: {
+      keepAlive: true
+    }
   },
   {
     path: '/profile',
-    component: Profile
+    component: Profile,
+    meta: {
+      keepAlive: true
+    }
+  },
+  {
+    name: 'detail',
+    path: '/detail/:iid',
+    component: Detail,
+    meta: {
+      keepAlive: false
+    }
   }
 ]
 
