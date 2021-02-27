@@ -15,6 +15,7 @@
                       v-show="isShowLoadMore"></pullup-loading>
     </scroll>
     <back-top @click.native="backTopClick" v-show="isBackTopShow"></back-top>
+    <div class="mask" v-show="isGoodsTabChanged"></div>
   </div>
 </template>
 
@@ -50,8 +51,15 @@ export default {
       is_loading_show: false,
       isShowLoadMore: false,
       isOnPosition: false,
+      isGoodsTabChanged: false,
       tabControlY: 0,
-      positionY: 0
+      positionY: 0,
+      goodsTabY : {
+        'pop': 0,
+        'new': 0,
+        'sell': 0
+      }
+
     }
   },
   components: {
@@ -85,11 +93,23 @@ export default {
     //3.监听图片加载事件
     // console.log("Home mounted");
     const refresh = debounce(this.$refs.scroll.refresh, 50)
-    const loadMore = debounce(this.showLoadMore, 50)
+    const showLoadMore = debounce(() => {
+      this.isShowLoadMore = true
+    }, 50)
+    const emitGoodsTabChanged = debounce( () => {
+      this.$bus.emit('goodsTabChanged')
+      setTimeout( () => {
+        this.isGoodsTabChanged = false
+      }, 50)
+    }, 100)
+
     this.$bus.on('itemImageLoaded', () => {
-      // console.log('--------');
-      loadMore()
+      console.log('Home refresh');
+      showLoadMore()
       refresh()
+      if(this.isGoodsTabChanged) {
+        emitGoodsTabChanged()
+      }
     })
   },
   activated() {
@@ -112,15 +132,16 @@ export default {
     tabClick(index) {
       switch (index) {
         case 0:
-          this.current_type = 'pop';
+          this.changeGoodsTab(this.current_type, 'pop')
           break;
         case 1:
-          this.current_type = 'new';
+          this.changeGoodsTab(this.current_type, 'new')
           break;
         case 2:
-          this.current_type = 'sell';
+          this.changeGoodsTab(this.current_type, 'sell')
           break;
       }
+      console.log(this.goodsTabY);
       this.$refs.tabControl1.currentIndex = index;
       this.$refs.tabControl2.currentIndex = index;
 
@@ -128,6 +149,9 @@ export default {
 
     backTopClick() {
       this.$refs.scroll.scrollTo(0, 0)
+      for (let k in this.goodsTabY) {
+        this.goodsTabY[k] = -this.tabControlY
+      }
     },
 
     onScroll(position) {
@@ -148,6 +172,8 @@ export default {
     onSwiperImageLoad() {
 
       this.tabControlY = this.$refs.tabControl2.$el.offsetTop
+      this.goodsTabY['pop'] = this.goodsTabY['new'] = this.goodsTabY['sell'] = -this.tabControlY
+      console.log(this.goodsTabY);
     },
     /**
      * 网络数据请求
@@ -178,9 +204,19 @@ export default {
     /**
      * 其他
      */
-    showLoadMore() {
-      // console.log('show load more');
-      this.isShowLoadMore = true
+    changeGoodsTab(currentType, newType) {
+      if(currentType !== newType && this.$refs.scroll.getScrollY() <= -this.tabControlY) {
+        this.isGoodsTabChanged = true;
+      }
+      this.goodsTabY[currentType] =
+              this.$refs.scroll.getScrollY() <= -this.tabControlY
+              ? this.$refs.scroll.getScrollY() : -this.tabControlY
+      this.current_type = newType;
+      this.$bus.on('goodsTabChanged', () => {
+        if(this.$refs.scroll.getScrollY() <= -this.tabControlY) {
+          this.$refs.scroll.scrollTo(0, this.goodsTabY[this.current_type], 0)
+        }
+      })
     }
 
   },
@@ -202,7 +238,7 @@ export default {
     left: 0;
     right: 0;
     top: 0;
-    z-index: 12;
+    z-index:10;
   }
 
   .content {
@@ -217,6 +253,17 @@ export default {
 
   .tabtop {
     position: relative;
+    z-index: 9;
+  }
+
+  .mask {
+    position: absolute;
+    top: 2.625rem;
+    bottom: 1.53125rem;
+    left: 0;
+    right: 0;
+    background-color: rgba(255, 255, 255, 1);
+    height: calc(100% - 4.15625rem);
     z-index: 9;
   }
 

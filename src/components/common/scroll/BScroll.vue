@@ -21,7 +21,7 @@ export default {
     },
     is_pullup_load: {
       type: [Boolean, Object],
-      defualt: true
+      defualt: false
     }
 
   },
@@ -34,7 +34,7 @@ export default {
     this.initBScroll()
   },
   updated() {
-    // this.bscroll.refresh()
+    this.bscroll.refresh()
   },
   methods: {
     initBScroll() {
@@ -59,8 +59,10 @@ export default {
     },
 
     refresh() {
-      // console.log('BScroll refreshed');
-      this.bscroll && this.bscroll.refresh()
+      if(this.bscroll) {
+        console.log('BScroll refreshed');
+        this.bscroll.refresh()
+      }
     },
 
     finishPullUp() {
@@ -73,6 +75,10 @@ export default {
 
     scrollTo(x, y, time=300) {
       this.bscroll && this.bscroll.scrollTo(x, y, time)
+    },
+
+    offPullup() {
+      this.bscroll.off('pullingUp')
     }
   },
 
