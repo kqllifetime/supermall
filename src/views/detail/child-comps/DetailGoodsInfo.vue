@@ -31,7 +31,7 @@
     },
     methods: {
       onImageLoaded() {
-        this.$bus.emit('detailImageLoaded')
+        this.$emit('detailImageLoaded')
       }
     },
 	}

@@ -8,7 +8,7 @@
 <script>
 
 export default {
-  el: 'PullupLoading',
+  name: 'PullupLoading',
   props: {
     is_loading_show: false,
   }

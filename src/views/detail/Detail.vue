@@ -1,14 +1,17 @@
 <template>
   <div class="detail">
     <detail-nav-bar class="detail-nav"></detail-nav-bar>
-    <scroll class="content" ref="scroll">
-      <detail-swiper :images="swiperImages"  />
-      <detail-base-info :goods="goodsInfo"></detail-base-info>
-      <detail-shop-info :shop="shopInfo"></detail-shop-info>
-      <detail-goods-info :detailInfo="detailInfo" />
-      <detail-param-info :paramInfo="goodsParams"></detail-param-info>
-      <detail-comment-info :commentInfo="commentInfo"></detail-comment-info>
-      <detail-recommend-info :recommendList="recommendData"></detail-recommend-info>
+    <scroll class="content" ref="scroll"
+          :is_pullup_load="{threshold: -50}" @pullingUp="onPullingUp">
+      <detail-swiper :images="swiperImages"/>
+      <detail-base-info :goods="goodsInfo"/>
+      <detail-shop-info :shop="shopInfo"/>
+      <detail-goods-info :detailInfo="detailInfo"
+          @detailImageLoaded="onDetailImageLoaded"/>
+      <detail-param-info :paramInfo="goodsParams"/>
+      <detail-comment-info :commentInfo="commentInfo"/>
+      <detail-recommend-info :recommendList="recommendData"/>
+      <pullup-loading :is_loading_show="is_loading_show" v-show="isShowLoadMore"/>
     </scroll>
   </div>
 </template>
@@ -24,8 +27,13 @@ import DetailCommentInfo from './child-comps/DetailCommentInfo'
 import DetailRecommendInfo from './child-comps/DetailRecommendInfo'
 
 import Scroll from '@/components/common/scroll/BScroll'
+import PullupLoading from '@/components/common/scroll/PullupLoading'
 
-import {itemListenerMixIn} from '@/common/mixin'
+
+import {
+  itemListenerMixIn,
+  loadMoreMixIn,
+  } from '@/common/mixin'
 import {debounce} from '@/common/utils'
 import {
   getDetailData,
@@ -33,7 +41,6 @@ import {
   Goods,
   Shop,
   GoodsParam
-
   } from '@/network/detail.js'
 
 export default {
@@ -59,9 +66,10 @@ export default {
     DetailParamInfo,
     DetailCommentInfo,
     DetailRecommendInfo,
-    Scroll
+    Scroll,
+    PullupLoading
   },
-  mixins: [itemListenerMixIn],
+  mixins: [itemListenerMixIn, loadMoreMixIn],
   created() {
     console.log('Detail created');
     this.itemid = this.$route.params.iid
@@ -87,22 +95,40 @@ export default {
       console.log(err);
     })
 
-    getRecommend().then(res => {
+    this.getRecommendData();
+
+  },
+  mounted() {
+  },
+  unmounted() {
+    // imgLoadListerner和loadMoreListener为混入mixin的变量，
+    // 离开时关闭混入的监听事件
+    this.$bus.off('itemImageLoaded', this.imgLoadListener)
+    this.$bus.off('itemImageLoaded', this.loadMoreListener)
+  },
+  methods: {
+    onDetailImageLoaded() {
+      // 调用混入的变量函数
+      this.newRefresh()
+    },
+    onPullingUp() {
+      // 调用混入的loadMoreLoading和loadMoreDone
+      this.loadMoreLoading()
+      this.getRecommendData();
+      this.$bus.on('doneGetRecommendData', () => {
+        this.loadMoreDone()
+      })
+    },
+    getRecommendData() {
+      getRecommend().then(res => {
       // console.log(res);
-      this.recommendData = res.data.list
+      this.recommendData.push(...res.data.list)
+      this.$refs.scroll.finishPullUp()
+      this.$bus.emit('doneGetRecommendData')
     }).catch(err => {
       console.log(err);
     })
-  },
-  mounted() {
-    const detailRefresh = debounce(this.$refs.scroll.refresh, 50)
-    this.$bus.on('detailImageLoaded', () => {
-      detailRefresh()
-    })
-  },
-  unmounted() {
-    // imgLoadListerner为混入mixin的变量，关闭混入的监听事件
-    this.$bus.off('itemImageLoaded', this.imgLoadListener)
+    }
   },
 }
 </script>

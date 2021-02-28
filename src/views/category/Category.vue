@@ -114,7 +114,7 @@ import BScroll from '@better-scroll/core'
 // BScroll.use(Pullup)
 
 export default {
-  el: 'BScroll',
+  name: 'BScroll',
   data() {
     return {
       bscroll: null,

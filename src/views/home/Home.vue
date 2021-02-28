@@ -11,10 +11,10 @@
       <tab-control :title="['流行', '新款', '精选']"
                     @tabClick="tabClick" ref="tabControl2"/>
       <goods-list :goods_item="showGoods"/>
-      <pullup-loading :is_loading_show="is_loading_show" class="pullup"
-                      v-show="isShowLoadMore"></pullup-loading>
+      <pullup-loading :is_loading_show="is_loading_show"
+                      v-show="isShowLoadMore"/>
     </scroll>
-    <back-top @click.native="backTopClick" v-show="isBackTopShow"></back-top>
+    <back-top @click.native="backTopClick" v-show="isBackTopShow"/>
     <div class="mask" v-show="isGoodsTabChanged"></div>
   </div>
 </template>
@@ -33,6 +33,10 @@ import HomeFeature from './child-comps/HomeFeature'
 
 import {getHomeMultidata, getHomeData} from '@/network/home-request'
 import {debounce} from '@/common/utils.js'
+import {
+  itemListenerMixIn,
+  loadMoreMixIn,
+} from '@/common/mixin.js'
 
 export default {
   name: 'Home',
@@ -48,8 +52,6 @@ export default {
       },
       current_type: 'pop',
       isBackTopShow: false,
-      is_loading_show: false,
-      isShowLoadMore: false,
       isOnPosition: false,
       isGoodsTabChanged: false,
       tabControlY: 0,
@@ -58,8 +60,9 @@ export default {
         'pop': 0,
         'new': 0,
         'sell': 0
-      }
-
+      },
+      goodsTabChangeListener: null,
+      isDeactivated: false
     }
   },
   components: {
@@ -79,6 +82,7 @@ export default {
       return this.goods[this.current_type].list
     },
   },
+  mixins: [itemListenerMixIn, loadMoreMixIn],
   created() {
     console.log('Home created');
     //1.请求banner和reommend数据
@@ -89,38 +93,38 @@ export default {
     this.getHomeData('sell');
   },
   mounted() {
-    // console.log(this.$bus);
     //3.监听图片加载事件
-    // console.log("Home mounted");
-    const refresh = debounce(this.$refs.scroll.refresh, 50)
-    const showLoadMore = debounce(() => {
-      this.isShowLoadMore = true
-    }, 50)
     const emitGoodsTabChanged = debounce( () => {
       this.$bus.emit('goodsTabChanged')
       setTimeout( () => {
         this.isGoodsTabChanged = false
       }, 50)
     }, 100)
-
-    this.$bus.on('itemImageLoaded', () => {
-      console.log('Home refresh');
-      showLoadMore()
-      refresh()
+    this.goodsTabChangeListener = () => {
       if(this.isGoodsTabChanged) {
         emitGoodsTabChanged()
       }
-    })
+    }
+    this.$bus.on('itemImageLoaded', this.goodsTabChangeListener)
   },
   activated() {
-    // console.log('Home activated');
+    // 重新激活时，回到上次保存的位置，并刷新dom
     this.$refs.scroll.scrollTo(0, this.positionY)
     this.$refs.scroll.refresh()
+    if(this.isDeactivated) {
+      this.$bus.on('itemImageLoaded', this.imgLoadListener)
+      this.$bus.on('itemImageLoaded', this.loadMoreListener)
+      this.$bus.on('itemImageLoaded', this.goodsTabChangeListener)
+    }
   },
   deactivated() {
-    console.log('Home deactivated');
+    this.isDeactivated = true
+    // 离开页面时，保存当前的位置
     this.positionY = this.$refs.scroll.getScrollY()
-    // console.log(this.positionY);
+    // 调用混入的变量imgLoadListener和loadMoreListener, 离开时关闭监听事件
+    this.$bus.off('itemImageLoaded', this.imgLoadListener)
+    this.$bus.off('itemImageLoaded', this.loadMoreListener)
+    this.$bus.off('itemImageLoaded', this.goodsTabChangeListener)
   },
   unmounted() {
     console.log('Home destroyed');
@@ -161,11 +165,11 @@ export default {
     },
 
     onPullingUp() {
-      this.is_loading_show = true;
+      // 调用混入的loadMoreLoading和loadMoreDone
+      this.loadMoreLoading()
       this.getHomeData(this.current_type);
       this.$bus.on('doneGetHomeData', () => {
-        this.is_loading_show = false;
-        this.isShowLoadMore = false;
+        this.loadMoreDone()
       })
     },
 
