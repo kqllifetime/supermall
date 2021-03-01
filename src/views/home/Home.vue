@@ -2,19 +2,19 @@
   <div id="home">
     <nav-bar class="home-nav"><template #center>购物街</template></nav-bar>
     <tab-control :title="['流行', '新款', '精选']" v-show="isOnPosition"
-                  @tabClick="tabClick" ref="tabControl1" class="tabtop"/>
+                  @tabClick="onTabClick" ref="tabControl1" class="tabtop"/>
     <scroll class="content" ref="scroll" :is_pullup_load="{threshold: -50}"
             @scroll="onScroll" @pullingUp="onPullingUp">
       <home-swiper :banner_data="banner" @swiperImageLoad="onSwiperImageLoad"/>
       <home-recommend :recommend_data="recommend"/>
       <home-feature></home-feature>
       <tab-control :title="['流行', '新款', '精选']"
-                    @tabClick="tabClick" ref="tabControl2"/>
+                    @tabClick="onTabClick" ref="tabControl2"/>
       <goods-list :goods_item="showGoods"/>
       <pullup-loading :is_loading_show="is_loading_show"
                       v-show="isShowLoadMore"/>
     </scroll>
-    <back-top @click.native="backTopClick" v-show="isBackTopShow"/>
+    <back-top @click.native="onBackTopClick" v-show="isBackTopShow"/>
     <div class="mask" v-show="isGoodsTabChanged"></div>
   </div>
 </template>
@@ -24,8 +24,6 @@ import NavBar from '@/components/common/nav-bar/NavBar'
 import Scroll from '@/components/common/scroll/BScroll'
 import TabControl from '@/components/content/tabcontrol/TabControl'
 import GoodsList from '@/components/content/goods/GoodsList'
-import BackTop from '@/components/content/back-top/BackTop'
-import PullupLoading from '@/components/common/scroll/PullupLoading'
 
 import HomeSwiper from './child-comps/HomeSwiper'
 import HomeRecommend from './child-comps/HomeRecommend'
@@ -36,6 +34,7 @@ import {debounce} from '@/common/utils.js'
 import {
   itemListenerMixIn,
   loadMoreMixIn,
+  backTopMixIn
 } from '@/common/mixin.js'
 
 export default {
@@ -51,9 +50,6 @@ export default {
         'sell': {page: 0, list: []}
       },
       current_type: 'pop',
-      isBackTopShow: false,
-      isOnPosition: false,
-      isGoodsTabChanged: false,
       tabControlY: 0,
       positionY: 0,
       goodsTabY : {
@@ -62,6 +58,8 @@ export default {
         'sell': 0
       },
       goodsTabChangeListener: null,
+      isOnPosition: false,
+      isGoodsTabChanged: false,
       isDeactivated: false
     }
   },
@@ -70,8 +68,6 @@ export default {
     Scroll,
     TabControl,
     GoodsList,
-    BackTop,
-    PullupLoading,
 
     HomeSwiper,
     HomeRecommend,
@@ -82,7 +78,7 @@ export default {
       return this.goods[this.current_type].list
     },
   },
-  mixins: [itemListenerMixIn, loadMoreMixIn],
+  mixins: [itemListenerMixIn, loadMoreMixIn, backTopMixIn],
   created() {
     console.log('Home created');
     //1.请求banner和reommend数据
@@ -133,7 +129,7 @@ export default {
     /**
      * 事件监听
      */
-    tabClick(index) {
+    onTabClick(index) {
       switch (index) {
         case 0:
           this.changeGoodsTab(this.current_type, 'pop')
@@ -151,8 +147,8 @@ export default {
 
     },
 
-    backTopClick() {
-      this.$refs.scroll.scrollTo(0, 0)
+    onBackTopClick() {
+      this.backTopClick()
       for (let k in this.goodsTabY) {
         this.goodsTabY[k] = -this.tabControlY
       }
@@ -160,7 +156,7 @@ export default {
 
     onScroll(position) {
       // console.log(position);
-      this.isBackTopShow = (-position.y) > 1000
+      this.showBackTop(-position.y, 1000)
       this.isOnPosition = (-position.y) >= this.tabControlY
     },
 

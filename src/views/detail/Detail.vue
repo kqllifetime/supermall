@@ -1,18 +1,20 @@
 <template>
   <div class="detail">
-    <detail-nav-bar class="detail-nav"></detail-nav-bar>
-    <scroll class="content" ref="scroll"
-          :is_pullup_load="{threshold: -50}" @pullingUp="onPullingUp">
+    <detail-nav-bar class="detail-nav" @topTabClick="onTopTabClick" ref="navbar"/>
+    <scroll class="content" ref="scroll" :is_pullup_load="{threshold: -50}"
+          @scroll="onScroll" @pullingUp="onPullingUp">
       <detail-swiper :images="swiperImages"/>
       <detail-base-info :goods="goodsInfo"/>
       <detail-shop-info :shop="shopInfo"/>
       <detail-goods-info :detailInfo="detailInfo"
           @detailImageLoaded="onDetailImageLoaded"/>
-      <detail-param-info :paramInfo="goodsParams"/>
-      <detail-comment-info :commentInfo="commentInfo"/>
-      <detail-recommend-info :recommendList="recommendData"/>
+      <detail-param-info :paramInfo="goodsParams" ref="param"/>
+      <detail-comment-info :commentInfo="commentInfo" ref="comment"/>
+      <detail-recommend-info :recommendList="recommendData" ref="recommend"/>
       <pullup-loading :is_loading_show="is_loading_show" v-show="isShowLoadMore"/>
     </scroll>
+    <detail-bottom-bar @addToCart="onAddToCart"/>
+    <back-top @click.native="onBackTopClick" v-show="isBackTopShow"/>
   </div>
 </template>
 
@@ -25,14 +27,14 @@ import DetailGoodsInfo from './child-comps/DetailGoodsInfo'
 import DetailParamInfo from './child-comps/DetailParamInfo'
 import DetailCommentInfo from './child-comps/DetailCommentInfo'
 import DetailRecommendInfo from './child-comps/DetailRecommendInfo'
+import DetailBottomBar from './child-comps/DetailBottomBar'
 
 import Scroll from '@/components/common/scroll/BScroll'
-import PullupLoading from '@/components/common/scroll/PullupLoading'
-
 
 import {
   itemListenerMixIn,
   loadMoreMixIn,
+  backTopMixIn,
   } from '@/common/mixin'
 import {debounce} from '@/common/utils'
 import {
@@ -55,6 +57,10 @@ export default {
       goodsParams: {},
       commentInfo: {},
       recommendData: [],
+      topTabPositionY: [],
+      getTopTabPositionY: null,
+      currentIndex: 0,
+      isClickTopTab: false,
     }
   },
   components: {
@@ -66,10 +72,10 @@ export default {
     DetailParamInfo,
     DetailCommentInfo,
     DetailRecommendInfo,
+    DetailBottomBar,
     Scroll,
-    PullupLoading
   },
-  mixins: [itemListenerMixIn, loadMoreMixIn],
+  mixins: [itemListenerMixIn, loadMoreMixIn, backTopMixIn],
   created() {
     console.log('Detail created');
     this.itemid = this.$route.params.iid
@@ -97,6 +103,16 @@ export default {
 
     this.getRecommendData();
 
+    this.getTopTabPositionY = debounce( () => {
+      this.topTabPositionY = []
+      this.topTabPositionY.push(0)
+      this.topTabPositionY.push(this.$refs.param.$el.offsetTop - this.$refs.navbar.$el.offsetHeight)
+      this.topTabPositionY.push(this.$refs.comment.$el.offsetTop - this.$refs.navbar.$el.offsetHeight)
+      this.topTabPositionY.push(this.$refs.recommend.$el.offsetTop - this.$refs.navbar.$el.offsetHeight)
+      // 在数组内多加一项最大值，用来简化topTab联动事件的判断条件
+      this.topTabPositionY.push(Number.MAX_VALUE)
+      // console.log(this.topTabPositionY);
+    }, 100)
   },
   mounted() {
   },
@@ -107,9 +123,18 @@ export default {
     this.$bus.off('itemImageLoaded', this.loadMoreListener)
   },
   methods: {
+    onTopTabClick(index) {
+      this.currentIndex = index
+      this.isClickTopTab = true
+      this.$bus.on('tabScrollDone', () => {
+        this.isClickTopTab = false
+      })
+      this.$refs.scroll.scrollTo(0, -this.topTabPositionY[index])
+    },
     onDetailImageLoaded() {
       // 调用混入的变量函数
       this.newRefresh()
+      this.getTopTabPositionY()
     },
     onPullingUp() {
       // 调用混入的loadMoreLoading和loadMoreDone
@@ -118,6 +143,41 @@ export default {
       this.$bus.on('doneGetRecommendData', () => {
         this.loadMoreDone()
       })
+    },
+    onBackTopClick() {
+      // 调用混入的backTopClick
+      this.backTopClick()
+    },
+    onScroll(position) {
+      // 调用混入的showBackTop
+      // console.log(position);
+      const positionY = -position.y
+      // 判断是否显示backTop组件
+      this.showBackTop(positionY, 1000)
+      // 判断是否是点击topTab的滚动事件
+      if(this.isClickTopTab && positionY === this.topTabPositionY[this.currentIndex]) {
+        this.$bus.emit('tabScrollDone')
+      }
+      // 判断topTab的联动, 是点击topTab产生的滚动则不执行
+      if(!this.isClickTopTab) {
+        const length = this.topTabPositionY.length
+        for (let i = 0; i < length-1; i++) {
+          // if(this.currentIndex !== i &&
+          //     ((i< length - 1 && positionY >= this.topTabPositionY[i] && positionY < this.topTabPositionY[i+1]) ||
+          //       (i === length - 1 && positionY >= this.topTabPositionY[i])))
+          if(this.currentIndex !==i &&
+              (positionY >= this.topTabPositionY[i] &&
+                positionY < this.topTabPositionY[i+1]))
+          {
+            this.currentIndex = i
+            this.$refs.navbar.currentIndex = this.currentIndex
+          }
+        }
+      }
+
+    },
+    onAddToCart() {
+      console.log('add to cart');
     },
     getRecommendData() {
       getRecommend().then(res => {
@@ -140,7 +200,7 @@ export default {
     position: relative;
     z-index: 1;
     .content {
-      height: calc(100% - 1.375rem);
+      height: calc(100% - 1.375rem - 1.53125rem);
       background-color: #fff;
     }
     .detail-nav {

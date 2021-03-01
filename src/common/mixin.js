@@ -1,4 +1,7 @@
 import {debounce} from './utils'
+import BackTop from '@/components/content/back-top/BackTop'
+import PullupLoading from '@/components/common/scroll/PullupLoading'
+
 
 export const itemListenerMixIn = {
   data() {
@@ -19,7 +22,9 @@ export const itemListenerMixIn = {
 export const loadMoreMixIn = {
   // <pullup-loading :is_loading_show="is_loading_show"
   // v-show="isShowLoadMore"/>
-
+  components: {
+    PullupLoading
+  },
   data() {
     return {
       is_loading_show: false,
@@ -44,4 +49,27 @@ export const loadMoreMixIn = {
       this.isShowLoadMore = false;
     }
   },
+}
+
+
+export const backTopMixIn = {
+  components: {
+    BackTop
+  },
+  data() {
+    return {
+      isBackTopShow: false,
+    }
+  },
+  methods: {
+    backTopClick(t=300) {
+      this.$refs.scroll.scrollTo(0, 0, t)
+    },
+    showBackTop(position, value) {
+      this.isBackTopShow = position > value
+      }
+
+    },
+
+
 }
